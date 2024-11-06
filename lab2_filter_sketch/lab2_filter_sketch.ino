@@ -5,6 +5,8 @@
 // The following defines are used for setting and clearing register bits
 // on the Arduino processor. Low-level stuff: leave alone.
 
+#include "twilio.hpp"
+
 #ifndef cbi
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #endif
@@ -34,8 +36,21 @@ float threshold_val = 0.2; // Threshold value. Anything higher than the threshol
 //int Ts = 333;
 int Ts = 200;
 
+// Twilio Variables
+static const char *ssid = "";
+static const char *password = "";
+static const char *account_sid = "";
+static const char *auth_token = "";
+static const char *from_number = "";
+static const char *to_number = "";
+static const char *message = "Sent from my ESP32";
+
+Twilio *twilio;
+
 void setup() {
    Serial.begin(1200);
+   WiFi.begin(ssid, password);
+   twilio = new Twilio(account_sid, auth_token);
 
    //sbi(ADCSRA, ADPS2);     // Set ADC clock prescaler for faster ADC conversions
    //cbi(ADCSRA, ADPS1);
@@ -116,5 +131,9 @@ void loop() {
       while ((micros() - t1) < Ts);
    }
 } 
+
+void sendMessage() {
+  twilio->send_message(to_number, from_number, message, response);
+}
 
 
