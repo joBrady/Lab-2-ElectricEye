@@ -6,6 +6,7 @@
 // on the Arduino processor. Low-level stuff: leave alone.
 
 #include "twilio.hpp"
+#include <WiFi.h>
 
 #ifndef cbi
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
@@ -35,20 +36,39 @@ int Ts = 500;
 
 
 // Twilio Variables
-static const char *ssid = "";
-static const char *password = "";
-static const char *account_sid = "";
-static const char *auth_token = "";
-static const char *from_number = "";
-static const char *to_number = "";
+static const char *ssid = "Logans-Phone";
+static const char *password = "Falcons1";
+static const char *account_sid = "AC31106d170ccfae0cad7da3b1c68eb2aa";
+static const char *auth_token = "d28c386f2e9173228f0955ffbb06b66a";
+static const char *from_number = "+18554676115";
+static const char *to_number = "+18777804236";
 static const char *message = "Sent from my ESP32";
 
 Twilio *twilio;
 
 void setup() {
-   Serial.begin(1200);
-   //WiFi.begin(ssid, password);
-   //twilio = new Twilio(account_sid, auth_token);
+  Serial.begin(1200);
+
+  Serial.print("Connecting to WiFi network ;");
+  Serial.print(ssid);
+  Serial.println("'...");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Connecting...");
+    delay(500);
+  }
+  Serial.println("Connected!");
+
+  twilio = new Twilio(account_sid, auth_token);
+
+  String response;
+  bool success = twilio->send_message(to_number, from_number, message, response);
+  if (success) {
+    Serial.println("Sent message successfully!");
+  } else {
+    Serial.println(response);
+  }
 
    //sbi(ADCSRA, ADPS2);     // Set ADC clock prescaler for faster ADC conversions
    //cbi(ADCSRA, ADPS1);
@@ -131,8 +151,14 @@ void loop() {
    }
 } 
 
-//void sendMessage() {
-  //twilio->send_message(to_number, from_number, message, response);
-//}
+void sendMessage(String chosenMessage) {
+  String response;
+  bool success = twilio->send_message(to_number, from_number, chosenMessage, response);
+  if (success) {
+    Serial.println("Sent message successfully!");
+  } else {
+    Serial.println(response);
+  }
+}
 
 
