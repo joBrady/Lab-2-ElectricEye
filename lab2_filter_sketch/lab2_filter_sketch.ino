@@ -15,26 +15,24 @@
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
 
-int analogPin = 36;     // Specify analog input pin. Make sure to keep between 0 and 5V.
-int LED = 12;           // Specify output analog pin with indicator LED
+int analogPin = 33;     // Specify analog input pin. Make sure to keep between 0 and 5V.
+int LED = 2;           // Specify output analog pin with indicator LED
 
-const int n = 3;   // Number of past input and output samples to buffer; change this to match order of your filter
-//const int n = 6; Possibly more correct
+const int n = 7; // Number of past input and output samples to buffer; change this to match order of your filter
 
 int m = 10;        // Number of past outputs to average for hysteresis
 
-// Coefficients for Second-Order Sections (SOS) and gain
-float den[] = {1.0, -1.50178733768644, 0.934754753103344, -1.63304298324027, 0.943624840480612, -1.52527119243690, 0.881618592363189};  // Denominator coefficients
-float num[] = {0.0609109758872590, 0.0, -0.0609109758872590, 0.0609109758872590, 0.0, -0.0609109758872590, 0.0591907038184050};  // Numerator coefficients
-float gain = 1.0 * 0.0609109758872590 * 0.0609109758872590 * 0.0591907038184050;  // Overall gain value
+float num[] = {0.00289819463372143,	0,	-0.00869458390116429,	0,	0.00869458390116429,	0,	-0.00289819463372143};
+float den[] = {1,	-0.851172988233438,	2.61686206988090,	-1.38638472726139,	2.12575188112322,	-0.558397296097729,	0.532075368312090};
 
 float x[n], y[n], yn_value, s[10];  // Buffers to hold input, output, and intermediate values
 
 float threshold_val = 0.2; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
 
 // time between samples Ts = 1/Fs. If Fs = 3000 Hz, Ts=333 us
-//int Ts = 333;
-int Ts = 200;
+//Fs = 2000 Hz
+int Ts = 500;
+
 
 // Twilio Variables
 static const char *ssid = "";
@@ -49,13 +47,13 @@ Twilio *twilio;
 
 void setup() {
    Serial.begin(1200);
-   WiFi.begin(ssid, password);
-   twilio = new Twilio(account_sid, auth_token);
+   //WiFi.begin(ssid, password);
+   //twilio = new Twilio(account_sid, auth_token);
 
    //sbi(ADCSRA, ADPS2);     // Set ADC clock prescaler for faster ADC conversions
    //cbi(ADCSRA, ADPS1);
    //cbi(ADCSRA, ADPS0);
-
+   pinMode(analogPin, INPUT);
    pinMode(LED, OUTPUT);   // Makes the LED pin an output
 
    for (int i = 0; i < n; i++) {
@@ -112,6 +110,7 @@ void loop() {
           Serial.println(maxs);
           changet = micros();
 
+        //Important section for messaging
           if (maxs < threshold_val) {
               digitalWrite(LED, HIGH);
           } else {
@@ -132,8 +131,8 @@ void loop() {
    }
 } 
 
-void sendMessage() {
-  twilio->send_message(to_number, from_number, message, response);
-}
+//void sendMessage() {
+  //twilio->send_message(to_number, from_number, message, response);
+//}
 
 
