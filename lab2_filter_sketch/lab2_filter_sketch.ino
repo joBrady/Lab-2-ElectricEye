@@ -7,6 +7,8 @@
 
 #include "twilio.hpp"
 #include <WiFi.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 #ifndef cbi
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
@@ -45,6 +47,9 @@ static const char *to_number = "+18777804236";
 static const char *message = "Sent from my ESP32";
 
 Twilio *twilio;
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", -5 * 3600, 60000); // Adjust timezone offset as needed
 
 void setup() {
   Serial.begin(1200);
@@ -161,4 +166,19 @@ void sendMessage(String chosenMessage) {
   }
 }
 
+/*
+  timeClient.update();
+  String formattedDate = timeClient.getFormattedTime();
+  String hour = formattedDate.substring(0, 2);
+  String minute = formattedDate.substring(3, 5);
+  String am_pm = (hour.toInt() >= 12) ? "PM" : "AM";
+  hour = (hour.toInt() % 12 == 0) ? "12" : String(hour.toInt() % 12);
+  String month = String(timeClient.getDay());
+  String day = String(timeClient.getHours());
+  String year = String(timeClient.getMinutes());
+
+  String message = "Critical Safety Event at " + hour + ":" + minute + " " + am_pm + " on " + month + "/" + day + "/" + year;
+
+
+*/
 
