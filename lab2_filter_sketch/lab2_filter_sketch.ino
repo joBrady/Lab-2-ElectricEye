@@ -7,8 +7,8 @@
 
 #include "twilio.hpp"
 #include <WiFi.h>
-#include <NTPClient.h>
 #include <WiFiUdp.h>
+#include <time.h>
 
 #ifndef cbi
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
@@ -25,18 +25,22 @@ const int n = 7; // Number of past input and output samples to buffer; change th
 
 int m = 10;        // Number of past outputs to average for hysteresis
 
-float num[] = {0.00289819463372143,	0,	-0.00869458390116429,	0,	0.00869458390116429,	0,	-0.00289819463372143};
-float den[] = {1,	-0.851172988233438,	2.61686206988090,	-1.38638472726139,	2.12575188112322,	-0.558397296097729,	0.532075368312090};
+//float num[] = {0.00289819463372143,	0,	-0.00869458390116429,	0,	0.00869458390116429,	0,	-0.00289819463372143};
+//float den[] = {1,	-0.851172988233438,	2.61686206988090,	-1.38638472726139,	2.12575188112322,	-0.558397296097729,	0.532075368312090};
+
+float num[] = {0.000546462312553017,	0,	-0.00163938693765905,	0,	0.00163938693765905,	0,	-0.000546462312553017};
+float den[] = {1,	-1.28165117239335,	3.20327778948797,	-2.35458567678506,	2.85528064564482,	-1.01747147767597,	0.707506580188070};
 
 float x[n], y[n], yn_value, s[10];  // Buffers to hold input, output, and intermediate values
 
-float threshold_val = 0.2; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
-
+float threshold_val = 0.35; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
+float threshold_low = 0.15;
+int threshold_pass = 0;
 // time between samples Ts = 1/Fs. If Fs = 3000 Hz, Ts=333 us
 //Fs = 2000 Hz
 int Ts = 500;
 
-
+/*
 // Twilio Variables
 static const char *ssid = "Logans-Phone";
 static const char *password = "Falcons1";
@@ -47,13 +51,16 @@ static const char *to_number = "+18777804236";
 static const char *message = "Sent from my ESP32";
 
 Twilio *twilio;
-
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", -5 * 3600, 60000); // Adjust timezone offset as needed
+*/
+// Time variables
+//const char* ntpServer = "pool.ntp.org";
+//const long gmtOffset_sec = -6 * 3600; // CST offset (adjust as needed)
+//const int daylightOffset_sec = 3600;  // Daylight Saving Time offset (adjust as needed)
 
 void setup() {
+  //timeClient.update();
   Serial.begin(1200);
-
+/*
   Serial.print("Connecting to WiFi network ;");
   Serial.print(ssid);
   Serial.println("'...");
@@ -74,6 +81,9 @@ void setup() {
   } else {
     Serial.println(response);
   }
+*/
+  // Initialize time
+  //configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
    //sbi(ADCSRA, ADPS2);     // Set ADC clock prescaler for faster ADC conversions
    //cbi(ADCSRA, ADPS1);
@@ -136,11 +146,27 @@ void loop() {
           changet = micros();
 
         //Important section for messaging
+        if(threshold_pass == 0){
           if (maxs < threshold_val) {
+            
               digitalWrite(LED, HIGH);
+              //String response = getCriticalSafetyEventTime();
+              //Serial.println(response);
+          } else {
+              digitalWrite(LED, LOW);
+              threshold_pass = 1;
+          }
+        }
+        else{
+          if (maxs < threshold_low) {
+              digitalWrite(LED, HIGH);
+              //String response = getCriticalSafetyEventTime();
+              //Serial.println(response);
+              threshold_pass = 0;
           } else {
               digitalWrite(LED, LOW);
           }
+        }
       }
 
       // The filter was designed for a 3000 Hz sampling rate. This corresponds
@@ -155,7 +181,7 @@ void loop() {
       while ((micros() - t1) < Ts);
    }
 } 
-
+/*
 void sendMessage(String chosenMessage) {
   String response;
   bool success = twilio->send_message(to_number, from_number, chosenMessage, response);
@@ -165,20 +191,39 @@ void sendMessage(String chosenMessage) {
     Serial.println(response);
   }
 }
-
-/*
-  timeClient.update();
-  String formattedDate = timeClient.getFormattedTime();
-  String hour = formattedDate.substring(0, 2);
-  String minute = formattedDate.substring(3, 5);
-  String am_pm = (hour.toInt() >= 12) ? "PM" : "AM";
-  hour = (hour.toInt() % 12 == 0) ? "12" : String(hour.toInt() % 12);
-  String month = String(timeClient.getDay());
-  String day = String(timeClient.getHours());
-  String year = String(timeClient.getMinutes());
-
-  String message = "Critical Safety Event at " + hour + ":" + minute + " " + am_pm + " on " + month + "/" + day + "/" + year;
-
-
 */
+String getCriticalSafetyEventTime() {
+  struct tm timeInfo;
+  if (!getLocalTime(&timeInfo)) {
+    Serial.println("Failed to obtain time");
+    return "Failed to obtain time";
+  }
+
+  // Format hour in 12-hour format without leading zeros
+  int hour = timeInfo.tm_hour % 12;
+  if (hour == 0) {
+    hour = 12;
+  }
+
+  // Determine AM or PM
+  String am_pm = (timeInfo.tm_hour >= 12) ? "PM" : "AM";
+
+  // Format minutes with leading zeros
+  String minute = String(timeInfo.tm_min);
+  if (timeInfo.tm_min < 10) {
+    minute = "0" + minute;
+  }
+
+  // Format month/day/year
+  String month = String(timeInfo.tm_mon + 1);
+  String day = String(timeInfo.tm_mday);
+  String year = String(timeInfo.tm_year + 1900);
+
+  // Construct the message
+  String message = "Critical Safety Event at " + String(hour) + ":" + minute + " " + am_pm + " on " + month + "/" + day + "/" + year;
+  
+  return message;
+}
+
+
 
