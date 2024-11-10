@@ -44,8 +44,8 @@ int Ts = 500;
 // Twilio Variables
 static const char *ssid = "Logans-Phone";
 static const char *password = "Falcons1";
-static const char *account_sid = "AC31106d170ccfae0cad7da3b1c68eb2aa";
-static const char *auth_token = "336f1bcd9f8c7a628e43351f231fe5fa";
+static const char *account_sid = "";
+static const char *auth_token = "";
 static const char *from_number = "+18554676115";
 static const char *to_number = "+18777804236";
 WiFiClientSecure client;
