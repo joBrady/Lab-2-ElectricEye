@@ -34,9 +34,12 @@ float den[] = {1,	-1.28165117239335,	3.20327778948797,	-2.35458567678506,	2.8552
 
 float x[n], y[n], yn_value, s[10];  // Buffers to hold input, output, and intermediate values
 
-float threshold_val = 0.35; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
-float threshold_low = 0.15;
+float threshold_val = 0.2; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
+float threshold_low = 0.12;
 int threshold_pass = 0;
+int connection_hold = 0;
+int connection_broke = 0;
+
 // time between samples Ts = 1/Fs. If Fs = 3000 Hz, Ts=333 us
 //Fs = 2000 Hz
 int Ts = 500;
@@ -54,13 +57,13 @@ const char* twilioIP = "18.160.235.94";  // Replace with the actual IP from nslo
 const int httpsPort = 443;  // Standard port for HTTPS
 
 // Time variables
-//const char* ntpServer = "pool.ntp.org";
-//const long gmtOffset_sec = -6 * 3600; // CST offset (adjust as needed)
-//const int daylightOffset_sec = 3600;  // Daylight Saving Time offset (adjust as needed)
+const char* ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = -6 * 3600; // CST offset (adjust as needed)
+const int daylightOffset_sec = 3600;  // Daylight Saving Time offset (adjust as needed)
 
 void setup() {
-  //timeClient.update();
   Serial.begin(1200);
+  /*
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -76,9 +79,10 @@ void setup() {
   Serial.println("Connected to Twilio IP directly");
 
   sendMessage("Testing sending through method"); 
+  */
 
   // Initialize time
-  //configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
    //sbi(ADCSRA, ADPS2);     // Set ADC clock prescaler for faster ADC conversions
    //cbi(ADCSRA, ADPS1);
@@ -143,25 +147,43 @@ void loop() {
         //Important section for messaging
         if(threshold_pass == 0){
           if (maxs < threshold_val) {
-            
-              digitalWrite(LED, HIGH);
+              connection_hold = connection_hold - 1;
+              connection_broke = connection_broke + 1;
+              //            digitalWrite(LED, HIGH);
               //String response = getCriticalSafetyEventTime();
               //Serial.println(response);
           } else {
-              digitalWrite(LED, LOW);
+              //      digitalWrite(LED, LOW);
+              connection_hold = connection_hold + 1;
+              connection_broke = connection_broke - 1;
               threshold_pass = 1;
           }
         }
         else{
           if (maxs < threshold_low) {
-              digitalWrite(LED, HIGH);
-              //String response = getCriticalSafetyEventTime();
+            connection_hold = connection_hold - 1;
+            connection_broke = connection_broke + 1;
+              //     digitalWrite(LED, HIGH);
+             // String response = getCriticalSafetyEventTime();
               //Serial.println(response);
-              threshold_pass = 0;
+            threshold_pass = 0;
           } else {
-              digitalWrite(LED, LOW);
+            connection_hold = connection_hold + 1;
+            connection_broke = connection_broke - 1;
+              //digitalWrite(LED, LOW);
           }
         }
+      }
+
+      if(connection_hold == 1){
+        connection_hold = 0;
+        connection_broke = 0;
+        digitalWrite(LED, LOW);
+      }
+      if(connection_broke == 1){
+        digitalWrite(LED, HIGH);
+        connection_hold = 0;
+        connection_broke = 0;
       }
 
       // The filter was designed for a 3000 Hz sampling rate. This corresponds
