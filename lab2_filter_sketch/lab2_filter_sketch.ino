@@ -8,8 +8,7 @@
 #include "twilio.hpp"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include <WiFiUdp.h>
-#include <time.h>
+#include "time.h"
 
 #ifndef cbi
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
@@ -63,14 +62,14 @@ const int daylightOffset_sec = 3600;  // Daylight Saving Time offset (adjust as 
 
 void setup() {
   Serial.begin(1200);
-  /*
+  
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.println("Connecting to WiFi...");
   }
   Serial.println("Connected to WiFi");
-
+/*
   client.setInsecure();  // Use only for testing
   if (!client.connect(twilioIP, httpsPort)) {
     Serial.println("Failed to connect to Twilio IP!");
@@ -98,6 +97,7 @@ void setup() {
        s[i] = 0;
    }
    yn_value = 0;
+   getTime();
 }
 
 void loop() {
@@ -227,37 +227,25 @@ void sendMessage(String chosenMessage) {
   Serial.println("Message sent");
 }
 
-String getCriticalSafetyEventTime() {
+String getTime() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi not connected");
+    return "WiFi not connected";
+  }
   struct tm timeInfo;
   if (!getLocalTime(&timeInfo)) {
     Serial.println("Failed to obtain time");
     return "Failed to obtain time";
   }
 
-  // Format hour in 12-hour format without leading zeros
-  int hour = timeInfo.tm_hour % 12;
-  if (hour == 0) {
-    hour = 12;
-  }
+  Serial.print("Current time: ");
+  Serial.print(timeInfo.tm_hour);
+  Serial.print(":");
+  Serial.print(timeInfo.tm_min);
+  Serial.print(":");
+  Serial.println(timeInfo.tm_sec);
 
-  // Determine AM or PM
-  String am_pm = (timeInfo.tm_hour >= 12) ? "PM" : "AM";
-
-  // Format minutes with leading zeros
-  String minute = String(timeInfo.tm_min);
-  if (timeInfo.tm_min < 10) {
-    minute = "0" + minute;
-  }
-
-  // Format month/day/year
-  String month = String(timeInfo.tm_mon + 1);
-  String day = String(timeInfo.tm_mday);
-  String year = String(timeInfo.tm_year + 1900);
-
-  // Construct the message
-  String message = "Critical Safety Event at " + String(hour) + ":" + minute + " " + am_pm + " on " + month + "/" + day + "/" + year;
-  
-  return message;
+  return String(timeInfo.tm_hour) + ":" + String(timeInfo.tm_min) + ":" + String(timeInfo.tm_sec);
 }
 
 
