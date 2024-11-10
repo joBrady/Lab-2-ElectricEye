@@ -7,6 +7,7 @@
 
 #include "twilio.hpp"
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <WiFiUdp.h>
 #include <time.h>
 
@@ -40,18 +41,18 @@ int threshold_pass = 0;
 //Fs = 2000 Hz
 int Ts = 500;
 
-/*
 // Twilio Variables
 static const char *ssid = "Logans-Phone";
 static const char *password = "Falcons1";
 static const char *account_sid = "AC31106d170ccfae0cad7da3b1c68eb2aa";
-static const char *auth_token = "d28c386f2e9173228f0955ffbb06b66a";
+static const char *auth_token = "336f1bcd9f8c7a628e43351f231fe5fa";
 static const char *from_number = "+18554676115";
 static const char *to_number = "+18777804236";
-static const char *message = "Sent from my ESP32";
-
+WiFiClientSecure client;
 Twilio *twilio;
-*/
+const char* twilioIP = "18.160.235.94";  // Replace with the actual IP from nslookup or dig
+const int httpsPort = 443;  // Standard port for HTTPS
+
 // Time variables
 //const char* ntpServer = "pool.ntp.org";
 //const long gmtOffset_sec = -6 * 3600; // CST offset (adjust as needed)
@@ -60,28 +61,22 @@ Twilio *twilio;
 void setup() {
   //timeClient.update();
   Serial.begin(1200);
-/*
-  Serial.print("Connecting to WiFi network ;");
-  Serial.print(ssid);
-  Serial.println("'...");
   WiFi.begin(ssid, password);
-
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.println("Connecting...");
     delay(500);
+    Serial.println("Connecting to WiFi...");
   }
-  Serial.println("Connected!");
+  Serial.println("Connected to WiFi");
 
-  twilio = new Twilio(account_sid, auth_token);
-
-  String response;
-  bool success = twilio->send_message(to_number, from_number, message, response);
-  if (success) {
-    Serial.println("Sent message successfully!");
-  } else {
-    Serial.println(response);
+  client.setInsecure();  // Use only for testing
+  if (!client.connect(twilioIP, httpsPort)) {
+    Serial.println("Failed to connect to Twilio IP!");
+    return;
   }
-*/
+  Serial.println("Connected to Twilio IP directly");
+
+  sendMessage("Testing sending through method"); 
+
   // Initialize time
   //configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
@@ -181,17 +176,35 @@ void loop() {
       while ((micros() - t1) < Ts);
    }
 } 
-/*
+
 void sendMessage(String chosenMessage) {
-  String response;
-  bool success = twilio->send_message(to_number, from_number, chosenMessage, response);
-  if (success) {
-    Serial.println("Sent message successfully!");
-  } else {
-    Serial.println(response);
+  // Construct HTTP request
+  String postData = "To=" + String(to_number) + "&From=" + String(from_number) + "&Body=" + String(chosenMessage);
+  String auth = String(account_sid) + ":" + String(auth_token);
+  String encodedAuth = base64::encode(auth);  // Encode for Basic Auth header
+
+  // Send HTTP POST request
+  client.println("POST /2010-04-01/Accounts/" + String(account_sid) + "/Messages.json HTTP/1.1");
+  client.println("Host: api.twilio.com");
+  client.println("Authorization: Basic " + encodedAuth);
+  client.println("Content-Type: application/x-www-form-urlencoded");
+  client.println("Content-Length: " + String(postData.length()));
+  client.println("Connection: close");
+  client.println();
+  client.println(postData);
+
+  // Read the response
+  while (client.connected()) {
+    String line = client.readStringUntil('\n');
+    if (line == "\r") break;
   }
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+    Serial.println(line);  // Output the response from Twilio
+  }
+  Serial.println("Message sent");
 }
-*/
+
 String getCriticalSafetyEventTime() {
   struct tm timeInfo;
   if (!getLocalTime(&timeInfo)) {
