@@ -56,8 +56,8 @@ float den[] = {1,	-1.25625720747739,	3.49465232140442,	-2.55970486068023,	3.4582
 
 float x[n], y[n], yn_value, s[10];  // Buffers to hold input, output, and intermediate values
 
-float threshold_val = 0.2; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
-float threshold_low = 0.12;
+float threshold_val = 1; // Threshold value. Anything higher than the threshold will turn the LED off, anything lower will turn the LED on
+float threshold_low = 1;
 int threshold_pass = 0;
 int connection_hold = 0;
 int connection_broke = 0;
@@ -195,13 +195,13 @@ void loop() {
         }
       }
 
-      if(connection_hold == 2){
+      if(connection_hold == 1){
         connection_hold = 0;
         connection_broke = 0;
         message_sent = 0;
         digitalWrite(LED, LOW);
       }
-      if(connection_broke == 2){
+      if(connection_broke == 1){
         digitalWrite(LED, HIGH);
         connection_hold = 0;
         connection_broke = 0;
