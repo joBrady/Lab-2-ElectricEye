@@ -92,16 +92,13 @@ void setup() {
     Serial.println("Connecting to WiFi...");
   }
   Serial.println("Connected to WiFi");
-/*
+
   client.setInsecure();  // Use only for testing
   if (!client.connect(twilioIP, httpsPort)) {
     Serial.println("Failed to connect to Twilio IP!");
     return;
   }
-  Serial.println("Connected to Twilio IP directly");
-
-  sendMessage("Testing sending through method"); 
-  */
+  Serial.println("Connected to Twilio IP directly"); 
 
   // Initialize time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -120,7 +117,6 @@ void setup() {
        s[i] = 0;
    }
    yn_value = 0;
-   getTime();
 }
 
 void loop() {
@@ -207,6 +203,7 @@ void loop() {
         digitalWrite(LED, HIGH);
         connection_hold = 0;
         connection_broke = 0;
+        sendMessage();
       }
 
       // The filter was designed for a 3000 Hz sampling rate. This corresponds
@@ -222,9 +219,13 @@ void loop() {
    }
 } 
 
-void sendMessage(String chosenMessage) {
+void sendMessage() {
   // Construct HTTP request
-  String postData = "To=" + String(to_number) + "&From=" + String(from_number) + "&Body=" + String(chosenMessage);
+  String timeData = getTime();
+  String combinedMessage = "Critical Saftety Event at " + timeData;
+  //String combinedMessage = "Making sure this sends";
+  Serial.println(combinedMessage);
+  String postData = "To=" + String(to_number) + "&From=" + String(from_number) + "&Body=" + String(combinedMessage);
   String auth = String(account_sid) + ":" + String(auth_token);
   String encodedAuth = base64::encode(auth);  // Encode for Basic Auth header
 
@@ -261,14 +262,28 @@ String getTime() {
     return "Failed to obtain time";
   }
 
-  Serial.print("Current time: ");
-  Serial.print(timeInfo.tm_hour);
-  Serial.print(":");
-  Serial.print(timeInfo.tm_min);
-  Serial.print(":");
-  Serial.println(timeInfo.tm_sec);
+  int hourInt = timeInfo.tm_hour;
+  String hour = String(hourInt);
+  String meridiem;
+  if (hourInt > 12) {
+    hour = String(hourInt - 12);
+    meridiem = "PM";
+  }
+  else {
+    meridiem = "AM";
+  }
+  String minute = String(timeInfo.tm_min);
+  if (int(timeInfo.tm_min) < 10){
+    minute = "0" + minute;
+  }
+  String month = String(timeInfo.tm_mon + 1);
+  String day = String(timeInfo.tm_mday);
+  String year = String(timeInfo.tm_year + 1900);
 
-  return String(timeInfo.tm_hour) + ":" + String(timeInfo.tm_min) + ":" + String(timeInfo.tm_sec);
+  String message = hour + ":" + minute + " " + meridiem + " on " + month + "/" + day + "/" + year;
+  Serial.println(message);
+
+  return message;
 }
 
 
