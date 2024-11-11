@@ -61,6 +61,7 @@ float threshold_low = 0.12;
 int threshold_pass = 0;
 int connection_hold = 0;
 int connection_broke = 0;
+int message_sent = 0;
 
 // time between samples Ts = 1/Fs. If Fs = 3000 Hz, Ts=333 us
 //Fs = 2000 Hz
@@ -194,16 +195,21 @@ void loop() {
         }
       }
 
-      if(connection_hold == 1){
+      if(connection_hold == 2){
         connection_hold = 0;
         connection_broke = 0;
+        message_sent = 0;
         digitalWrite(LED, LOW);
       }
-      if(connection_broke == 1){
+      if(connection_broke == 2){
         digitalWrite(LED, HIGH);
         connection_hold = 0;
         connection_broke = 0;
-        sendMessage();
+        if(message_sent == 0){
+          sendMessage();
+          message_sent = 1;
+        }
+        
       }
 
       // The filter was designed for a 3000 Hz sampling rate. This corresponds
@@ -214,8 +220,9 @@ void loop() {
       if ((micros() - t1) > Ts) {
           // if this happens, you must reduce Fs, and/or simplify your filter to run faster
           Serial.println("MISSED A SAMPLE");
-      }
+      }else{
       while ((micros() - t1) < Ts);
+      }
    }
 } 
 
@@ -235,7 +242,7 @@ void sendMessage() {
   client.println("Authorization: Basic " + encodedAuth);
   client.println("Content-Type: application/x-www-form-urlencoded");
   client.println("Content-Length: " + String(postData.length()));
-  client.println("Connection: close");
+  //client.println("Connection: close");
   client.println();
   client.println(postData);
 
